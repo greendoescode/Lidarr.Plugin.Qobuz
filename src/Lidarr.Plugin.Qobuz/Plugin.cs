@@ -4,6 +4,6 @@ namespace NzbDrone.Core.Plugins
     {
         public override string Name => "Qobuz";
         public override string Owner => "TrevTV";
-        public override string GithubUrl => "https://github.com/TrevTV/Lidarr.Plugin.Qobuz";
+        public override string GithubUrl => "https://github.com/greendoescode/Lidarr.Plugin.Qobuz";
     }
 }
