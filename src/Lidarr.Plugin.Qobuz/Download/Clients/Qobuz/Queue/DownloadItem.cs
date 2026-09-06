@@ -115,7 +115,19 @@ namespace NzbDrone.Core.Download.Clients.Qobuz.Queue
             var duration = page.Duration;
 
             var ext = Bitrate == AudioQuality.MP3320 ? "mp3" : "flac";
-            var outPath = Path.Combine(settings.DownloadPath, MetadataUtilities.GetFilledTemplate("%albumartist%/%album%/", ext, page, _qobuzAlbum), MetadataUtilities.GetFilledTemplate("%volume% - %track% - %title%.%ext%", ext, page, _qobuzAlbum));
+
+            // 1. Generate templates
+            var rawRelativeDir = MetadataUtilities.GetFilledTemplate("%albumartist%/%album%/", ext, page, _qobuzAlbum);
+            var rawFileName = MetadataUtilities.GetFilledTemplate("%volume% - %track% - %title%.%ext%", ext, page, _qobuzAlbum);
+            var rawLrcFileName = MetadataUtilities.GetFilledTemplate("%volume% - %track% - %title%.%ext%", "lrc", page, _qobuzAlbum);
+
+            // 2. Sanitize directories and filenames
+            var safeRelativeDir = SanitizePath(rawRelativeDir);
+            var safeFileName = SanitizeFileName(rawFileName);
+            var safeLrcFileName = SanitizeFileName(rawLrcFileName);
+
+            // 3. Assemble clean output path
+            var outPath = Path.Combine(settings.DownloadPath, safeRelativeDir, safeFileName);
             var outDir = Path.GetDirectoryName(outPath)!;
 
             DownloadFolder = outDir;
@@ -142,20 +154,7 @@ namespace NzbDrone.Core.Download.Clients.Qobuz.Queue
             await QobuzAPI.Instance.Client.ApplyMetadataToFile(track, outPath, plainLyrics, token: cancellation);
 
             if (!string.IsNullOrWhiteSpace(syncLyrics))
-                await CreateLrcFile(Path.Combine(outDir, MetadataUtilities.GetFilledTemplate("%volume% - %track% - %title%.%ext%", "lrc", page, _qobuzAlbum)), syncLyrics);
-
-            // TODO: this is currently a waste of resources, if this pr ever gets merged, it can be reenabled
-            // https://github.com/Lidarr/Lidarr/pull/4370
-            /* try
-            {
-                string artOut = Path.Combine(outDir, "folder.jpg");
-                if (!File.Exists(artOut))
-                {
-                    byte[] bigArt = await QobuzAPI.Instance.Client.Downloader.GetArtBytes(page["DATA"]!["ALB_PICTURE"]!.ToString(), 1024, cancellation);
-                    await File.WriteAllBytesAsync(artOut, bigArt, cancellation);
-                }
-            }
-            catch (UnavailableArtException) { } */
+                await CreateLrcFile(Path.Combine(outDir, safeLrcFileName), syncLyrics);
         }
 
         private async Task SetQobuzData(CancellationToken cancellation = default)
@@ -177,6 +176,21 @@ namespace NzbDrone.Core.Download.Clients.Qobuz.Queue
         private static async Task CreateLrcFile(string lrcFilePath, string syncLyrics)
         {
             await File.WriteAllTextAsync(lrcFilePath, syncLyrics);
+        }
+
+        // --- Path Sanitization Helpers ---
+
+        private static string SanitizeFileName(string fileName)
+        {
+            var invalidChars = Path.GetInvalidFileNameChars();
+            return string.Concat(fileName.Select(c => invalidChars.Contains(c) ? '_' : c));
+        }
+
+        private static string SanitizePath(string relativePath)
+        {
+            var segments = relativePath.Split(new[] { '/', '\\' }, StringSplitOptions.RemoveEmptyEntries);
+            var safeSegments = segments.Select(SanitizeFileName);
+            return Path.Combine(safeSegments.ToArray());
         }
     }
 }
