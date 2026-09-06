@@ -54,7 +54,7 @@ namespace NzbDrone.Core.Download.Clients.Qobuz.Queue
         public string Artist { get; private set; }
         public bool Explicit { get; private set; }
 
-        public RemoteAlbum RemoteAlbum {  get; private set; }
+        public RemoteAlbum RemoteAlbum { get; private set; }
 
         public string DownloadFolder { get; private set; }
 
@@ -180,10 +180,20 @@ namespace NzbDrone.Core.Download.Clients.Qobuz.Queue
 
         // --- Path Sanitization Helpers ---
 
+        private static readonly char[] IllegalChars = new[]
+        {
+            '?', ':', '*', '"', '<', '>', '|', '\\', '/'
+        };
+
         private static string SanitizeFileName(string fileName)
         {
-            var invalidChars = Path.GetInvalidFileNameChars();
-            return string.Concat(fileName.Select(c => invalidChars.Contains(c) ? '_' : c));
+            var invalidChars = Path.GetInvalidFileNameChars().Union(IllegalChars).ToHashSet();
+            
+            // Replaces illegal path characters with an underscore
+            var cleanName = string.Concat(fileName.Select(c => invalidChars.Contains(c) ? '_' : c));
+
+            // Trims trailing dots or spaces which cause OS I/O failures on SMB/NTFS
+            return cleanName.TrimEnd('.', ' ');
         }
 
         private static string SanitizePath(string relativePath)
