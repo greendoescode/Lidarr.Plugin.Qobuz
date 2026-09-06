@@ -52,8 +52,8 @@ jobs:
           sed -i'' -e "s/<AssemblyVersion>[0-9.*]\+<\/AssemblyVersion>/<AssemblyVersion>$MINIMUM_LIDARR_VERSION<\/AssemblyVersion>/g" ext/Lidarr/src/Directory.Build.props
       - name: Build
         run: |
-          dotnet restore src/*.sln /p:NuGetAudit=false
-          dotnet build src/*.sln -c Release -f ${{ matrix.framework }} /p:NuGetAudit=false
+          dotnet restore src/*.sln
+          dotnet build src/*.sln -c Release -f ${{ matrix.framework }}
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
