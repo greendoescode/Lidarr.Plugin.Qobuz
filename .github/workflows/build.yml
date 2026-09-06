@@ -19,13 +19,13 @@ env:
   PLUGIN_NAME: Lidarr.Plugin.Qobuz
   PLUGIN_VERSION: 10.1.0.${{ github.run_number }}
   MINIMUM_LIDARR_VERSION: 3.0.0.4855
-  DOTNET_VERSION: 8.0.405
+  DOTNET_VERSION: 8.0.404
 
 jobs:
   build:
     strategy:
       matrix:
-        framework: [ net8.0 ]
+        framework: [ net6.0 ]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
